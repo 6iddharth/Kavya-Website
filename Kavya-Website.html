@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>For Kavya 💜</title>
+  
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Load Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
+  
+  <!-- Load FontAwesome Icons (Replaces Lucide to avoid installation) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Load React -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body { font-family: 'Poppins', sans-serif; }
+    .font-playfair { font-family: 'Playfair Display', serif; }
+    .font-dancing { font-family: 'Dancing Script', cursive; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- Custom Confetti Component ---
+    const Confetti = ({ zIndex = "z-50", opacity = "opacity-100" }) => {
+      const canvasRef = useRef(null);
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const pieces = [];
+        const colors = ['#fce7f3', '#fbcfe8', '#f9a8d4', '#f472b6', '#fb7185', '#fda4af', '#fff1f2', '#ffe4e6'];
+        const emojis = ['🎓', '💜', '🌸', '✨', '🧸'];
+
+        for (let i = 0; i < 150; i++) {
+          pieces.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            size: Math.random() * 10 + 5,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            isEmoji: Math.random() > 0.7,
+            emoji: emojis[Math.floor(Math.random() * emojis.length)],
+            speed: Math.random() * 3 + 2,
+            angle: Math.random() * 360,
+            spin: Math.random() * 0.2 - 0.1,
+          });
+        }
+
+        let animationId;
+        const update = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          pieces.forEach((p) => {
+            p.y += p.speed;
+            p.angle += p.spin;
+            if (p.y > canvas.height) {
+              p.y = -10;
+              p.x = Math.random() * canvas.width;
+            }
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle);
+            
+            if (p.isEmoji) {
+              ctx.font = `${p.size * 2.5}px Arial`;
+              ctx.fillText(p.emoji, -p.size, -p.size);
+            } else {
+              ctx.fillStyle = p.color;
+              ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            }
+            
+            ctx.restore();
+          });
+          animationId = requestAnimationFrame(update);
+        };
+
+        update();
+        return () => cancelAnimationFrame(animationId);
+      }, []);
+
+      return <canvas ref={canvasRef} className={`fixed inset-0 pointer-events-none ${zIndex} ${opacity}`} />;
+    };
+
+    // --- Fade In Scroll Component ---
+    const FadeInSection = ({ children, delay = "0ms" }) => {
+      const [isVisible, setVisible] = useState(false);
+      const domRef = useRef();
+
+      useEffect(() => {
+        const observer = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              setVisible(true);
+              observer.unobserve(domRef.current);
+            }
+          });
+        }, { threshold: 0.15 });
+        
+        if (domRef.current) observer.observe(domRef.current);
+        return () => observer.disconnect();
+      }, []);
+
+      return (
+        <div
+          ref={domRef}
+          className={`transition-all duration-1000 ease-out transform ${
+            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+          }`}
+          style={{ transitionDelay: delay }}
+        >
+          {children}
+        </div>
+      );
+    };
+
+    // --- Secret Note Component ---
+    const SecretNote = ({ buttonText, secretText }) => {
+      const [isOpen, setIsOpen] = useState(false);
+      return (
+        <div className="text-center my-8 relative z-20">
+          {!isOpen ? (
+            <button
+              onClick={() => setIsOpen(true)}
+              className="animate-pulse group inline-flex items-center justify-center px-5 py-2 text-sm md:text-base font-bold text-rose-500 transition-all duration-300 bg-rose-50 rounded-full hover:bg-rose-100 shadow-sm border border-rose-200"
+            >
+              <i className="fa-solid fa-heart mr-2 group-hover:text-rose-500 group-hover:scale-125 transition-transform"></i>
+              {buttonText}
+            </button>
+          ) : (
+            <div className="max-w-sm mx-auto bg-white/90 p-6 rounded-2xl shadow-lg border border-pink-200 transform scale-100 transition-all duration-500 text-rose-800 relative italic">
+               <i className="fa-solid fa-wand-magic-sparkles absolute top-3 left-3 text-pink-300"></i>
+               <p className="font-light text-sm md:text-base leading-relaxed px-2">{secretText}</p>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // --- Main App Component ---
+    function App() {
+      const [step, setStep] = useState(0); 
+      const [ceremonyState, setCeremonyState] = useState(0);
+      const [isPlaying, setIsPlaying] = useState(false);
+      const [showSecret, setShowSecret] = useState(false);
+
+      useEffect(() => {
+        if (step === 1) {
+          const timers = [
+            setTimeout(() => setCeremonyState(1), 1500),
+            setTimeout(() => setCeremonyState(2), 4000),
+            setTimeout(() => setCeremonyState(3), 6500),
+            setTimeout(() => setCeremonyState(4), 9500),
+          ];
+          return () => timers.forEach(clearTimeout);
+        }
+      }, [step]);
+
+      const enterHall = () => {
+        setStep(1);
+        setIsPlaying(true);
+      };
+
+      const claimDegree = () => {
+        setStep(2);
+        window.scrollTo(0, 0);
+      };
+
+      const photos = {
+        photo1: "./photo1.jpg", 
+        photo2: "./photo2.jpg", 
+        photo3: "./photo3.jpg", 
+        photo4: "./photo4.jpg", 
+        photo5: "./photo5.jpg", 
+      };
+
+      const fallbackPhotos = {
+        photo1: "https://images.unsplash.com/photo-1583339522880-990715d26390?auto=format&fit=crop&q=80&w=800",
+        photo2: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=800",
+        photo3: "https://images.unsplash.com/photo-1511895426328-dc8714191300?auto=format&fit=crop&q=80&w=800",
+        photo4: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=80&w=800",
+        photo5: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=800",
+      };
+
+      const itinerary = [
+        { icon: "fa-clock", title: "Arrival & Rehearsal", desc: "Nerves, excitement, and finding your place." },
+        { icon: "fa-users", title: "Academic Procession", desc: "Walking in like the boss you are." },
+        { icon: "fa-scroll", title: "Degree Distribution", desc: "The moment: Dr. Kavya Shah is announced!" },
+        { icon: "fa-user-doctor", title: "Hippocratic Oath", desc: "Taking the pledge to heal and care." },
+        { icon: "fa-award", title: "Speeches & Awards", desc: "Clapping until your hands hurt 👏" },
+        { icon: "fa-star", title: "Dress Code", desc: "Pink saree + black coat = unmatched aura 🥻" },
+        { icon: "fa-heart", title: "Family & Celebrations", desc: "Pappa, Mumma, and Bhai's proudest tears." },
+        { icon: "fa-camera", title: "Photo Sessions", desc: "1000+ photos minimum (send them all to me!)." },
+        { icon: "fa-location-dot", title: "Farewell Activities", desc: "One last time as a student, forever a doctor." },
+      ];
+
+      return (
+        <div className="min-h-screen bg-pink-50 text-rose-900 font-['Poppins'] overflow-x-hidden selection:bg-pink-300 selection:text-white relative">
+          
+          {isPlaying && (
+            <audio src="./forever_young.mp3" autoPlay loop className="hidden" />
+          )}
+
+          {step === 0 && (
+            <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-6 bg-gradient-to-br from-pink-100 via-rose-50 to-pink-100 relative overflow-hidden">
+              <div className="absolute top-10 left-4 md:left-10 text-pink-300 animate-pulse"><i className="fa-solid fa-wand-magic-sparkles text-4xl"></i></div>
+              <div className="absolute bottom-20 right-4 md:right-10 text-pink-300 animate-bounce"><i className="fa-solid fa-heart text-4xl"></i></div>
+              <div className="absolute top-1/4 right-1/4 text-2xl opacity-50 animate-pulse">🌸</div>
+              <div className="absolute bottom-1/3 left-1/4 text-2xl opacity-50 animate-bounce" style={{ animationDuration: '3s' }}>✨</div>
+              
+              <div className="text-center z-10 max-w-2xl mx-auto space-y-6 md:space-y-8 p-6 md:p-10 bg-white/50 backdrop-blur-md rounded-3xl shadow-xl border border-pink-200">
+                <h1 className="font-playfair text-3xl md:text-5xl font-bold text-rose-800 leading-tight">
+                  A Very Special Invitation...
+                </h1>
+                <p className="text-base md:text-xl text-rose-600 font-light px-4">
+                  For the girl who is about to make history.
+                </p>
+                <div className="pt-6 md:pt-8">
+                  <button 
+                    onClick={enterHall}
+                    className="group relative inline-flex items-center justify-center w-full md:w-auto px-6 md:px-8 py-4 font-bold text-white transition-all duration-300 bg-rose-500 rounded-full hover:bg-rose-600 hover:scale-105 shadow-[0_0_40px_-10px_rgba(244,63,94,0.8)]"
+                  >
+                    <i className="fa-solid fa-graduation-cap text-2xl mr-3"></i>
+                    <span className="font-playfair text-lg md:text-xl tracking-wide">Enter the Convocation Hall</span>
+                    <i className="fa-solid fa-wand-magic-sparkles text-2xl ml-3 group-hover:rotate-12 transition-transform"></i>
+                  </button>
+                </div>
+                <p className="text-xs md:text-sm text-rose-400 mt-4 italic">Please turn on your volume 🎶</p>
+              </div>
+            </div>
+          )}
+
+          {step === 1 && (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-gray-900 via-rose-900 to-pink-900 text-white relative p-4">
+              <Confetti zIndex="z-50" opacity="opacity-100" />
+              
+              <div className="text-center px-4 md:px-6 max-w-4xl w-full">
+                <div className={`transition-all duration-1000 transform ${ceremonyState >= 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                  <h2 className="font-playfair text-xl md:text-3xl lg:text-4xl font-light tracking-widest text-pink-200 uppercase mb-6 md:mb-8">
+                    Dr. N. D. Desai Medical College & Hospital
+                  </h2>
+                </div>
+
+                <div className={`transition-all duration-1000 transform ${ceremonyState >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                  <p className="text-lg md:text-xl lg:text-2xl font-light text-rose-100 italic mb-10 md:mb-12">
+                    proudly presents for the conferral of the degree of MBBS...
+                  </p>
+                </div>
+
+                <div className={`transition-all duration-1000 transform ${ceremonyState >= 3 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
+                  <div className="relative inline-block mb-12 md:mb-16">
+                    <div className="absolute -inset-4 bg-pink-500/30 blur-2xl rounded-full"></div>
+                    <h1 className="relative font-playfair text-4xl md:text-7xl lg:text-9xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-200 via-white to-pink-200 drop-shadow-2xl">
+                      DR. KAVYA SHAH
+                    </h1>
+                    <div className="absolute -top-6 -right-6 md:-top-10 md:-right-10 text-yellow-300 animate-spin-slow">
+                      <i className="fa-solid fa-star text-4xl md:text-6xl"></i>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`transition-all duration-1000 transform ${ceremonyState >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                  <button 
+                    onClick={claimDegree}
+                    className="group relative inline-flex items-center justify-center w-full md:w-auto px-8 md:px-10 py-4 md:py-5 font-bold text-rose-900 transition-all duration-300 bg-white rounded-full hover:bg-pink-100 hover:scale-110 shadow-2xl overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-pink-200 to-rose-200 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <i className="fa-solid fa-scroll mr-3 relative z-10 text-2xl"></i>
+                    <span className="relative z-10 font-playfair text-xl md:text-2xl">Claim Your Degree 🎓</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="min-h-screen bg-[url('https://www.transparenttextures.com/patterns/cream-paper.png')] bg-pink-50 pb-20 md:pb-32 relative">
+              <Confetti zIndex="z-0" opacity="opacity-50" />
+              
+              <div className="absolute top-40 left-5 md:left-20 text-3xl animate-bounce hidden md:block z-0" style={{ animationDuration: '4s' }}>✨</div>
+              <div className="absolute top-1/4 right-5 md:right-20 text-3xl animate-pulse hidden md:block z-0">🌸</div>
+              <div className="absolute top-1/2 left-2 md:left-10 text-2xl animate-bounce opacity-70 z-0" style={{ animationDuration: '3.5s' }}>💖</div>
+              <div className="absolute bottom-1/4 right-2 md:right-10 text-3xl animate-pulse opacity-60 z-0">🦋</div>
+              
+              <div className="fixed top-4 right-4 md:top-6 md:right-6 z-50 bg-white/90 backdrop-blur-md px-3 py-1.5 md:px-4 md:py-2 rounded-full shadow-lg border border-pink-200 flex items-center gap-2 text-rose-500">
+                <i className="fa-solid fa-music animate-bounce"></i>
+                <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wider">Forever Young</span>
+              </div>
+
+              <div className="max-w-3xl mx-auto px-4 md:px-6 pt-16 md:pt-24 space-y-24 md:space-y-32">
+                
+                <FadeInSection>
+                  <div className="text-center space-y-4 md:space-y-6">
+                    <i className="fa-solid fa-heart text-5xl md:text-6xl mx-auto text-rose-500 animate-pulse"></i>
+                    <h1 className="font-playfair text-4xl md:text-6xl lg:text-7xl font-bold text-rose-900 mt-4">
+                      To My Kavu 💜
+                    </h1>
+                    <h3 className="font-dancing text-2xl md:text-4xl text-rose-600 px-2">
+                      (My Brown Baddie, My Softest Place, My Proudest Feeling)
+                    </h3>
+                  </div>
+                </FadeInSection>
+
+                <FadeInSection>
+                  <div className="bg-white/40 p-6 md:p-10 rounded-3xl shadow-sm border border-pink-100">
+                    <div className="prose prose-base md:prose-xl prose-rose mx-auto leading-relaxed text-rose-800 text-center font-light">
+                      <p>Dear Kavya,</p>
+                      <p>Honestly… I still don't know how to write about you properly. 🫠</p>
+                      <p>Every single time I try, it feels incomplete.<br/>
+                      Like I can write pages and pages and still not even explain half of what you make me feel.</p>
+                      <p>You are genuinely one of those people who cannot be described in "small words."<br/>
+                      Because you feel everything deeply.<br/>
+                      A tiny compliment makes you smile for hours.<br/>
+                      One slightly off behaviour makes your mood sad.<br/>
+                      You care too much. Love too much. Think too much.<br/>
+                      <span className="font-medium">And maybe that's why people like me end up loving you this much too. 💜</span></p>
+                    </div>
+                  </div>
+                  <SecretNote 
+                    buttonText="A tiny secret..." 
+                    secretText="I literally rewrite my texts to you so many times just to make sure they sound perfect. You make me nervous in the best way possible. 🙈" 
+                  />
+                </FadeInSection>
+
+                <FadeInSection delay="200ms">
+                  <div className="relative p-3 md:p-4 bg-white shadow-2xl rounded-sm transform rotate-2 hover:rotate-0 transition-transform duration-500 max-w-xs md:max-w-md mx-auto border-4 md:border-8 border-white">
+                    <img src={photos.photo1} onError={(e) => { e.target.onerror = null; e.target.src = fallbackPhotos.photo1; }} alt="Kavu looking beautiful" className="w-full h-auto rounded-sm object-cover aspect-[4/5]" />
+                    <div className="absolute -bottom-4 -right-4 md:-bottom-6 md:-right-6 text-pink-400 opacity-70">
+                        <i className="fa-solid fa-wand-magic-sparkles text-5xl"></i>
+                    </div>
+                    <p className="font-dancing text-center text-xl md:text-2xl text-gray-600 mt-3 md:mt-4">That unreal saree look 🥹</p>
+                  </div>
+                </FadeInSection>
+
+                <FadeInSection>
+                  <div className="bg-gradient-to-br from-white/80 to-pink-50/80 backdrop-blur-md p-6 md:p-12 rounded-[2rem] shadow-xl border border-pink-200 text-center space-y-6 md:space-y-8">
+                    <h2 className="font-playfair text-2xl md:text-3xl font-bold text-rose-800 flex items-center justify-center gap-2">
+                      <i className="fa-solid fa-star text-rose-400"></i> And tomorrow... <i className="fa-solid fa-star text-rose-400"></i>
+                    </h2>
+                    <p className="text-lg md:text-xl text-rose-700 leading-relaxed px-2">
+                      Tomorrow is not just your convocation.<br/><br/>
+                      Tomorrow is literally the reward of every breakdown, every sacrifice, every train ride, every emotional night, every exam stress, every "I can't do this anymore," every silent prayer your family ever did for you.
+                    </p>
+                    <div className="py-4 md:py-6">
+                      <span className="font-playfair text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-pink-500 drop-shadow-sm">
+                        5.5 years, Kavu.
+                      </span>
+                    </div>
+                    <p className="text-base md:text-lg text-rose-800 leading-relaxed font-light px-2">
+                      That is not a joke.<br/>
+                      People casually say "MBBS" but they never really understand what it takes from someone.<br/>
+                      You gave your youth to this dream.<br/>
+                      Your family gave their peace to this dream.<br/>
+                      Your bhai gave his support and guidance to this dream.<br/>
+                      Your pappa and mumma gave their hearts to this dream.
+                    </p>
+                    <div className="pt-4">
+                      <h3 className="inline-block px-6 py-3 bg-rose-100 rounded-full font-playfair text-xl md:text-3xl text-rose-900 font-bold border border-rose-200">
+                        Tomorrow... You become Dr. Kavya Shah. 🎓🥹
+                      </h3>
+                    </div>
+                  </div>
+                </FadeInSection>
+
+                <FadeInSection>
+                  <div className="relative p-3 md:p-4 bg-white shadow-2xl rounded-sm transform -rotate-2 hover:rotate-0 transition-transform duration-500 max-w-sm md:max-w-lg mx-auto border-4 md:border-8 border-white">
+                    <img src={photos.photo2} onError={(e) => { e.target.onerror = null; e.target.src = fallbackPhotos.photo2; }} alt="College Journey" className="w-full h-auto rounded-sm object-cover aspect-[4/3] md:aspect-[16/9]" />
+                    <div className="absolute -top-4 -left-4 text-2xl">🚂</div>
+                    <p className="font-dancing text-center text-xl md:text-2xl text-gray-600 mt-3 md:mt-4">Ahmedabad to Nadiad</p>
+                  </div>
+                  <SecretNote 
+                    buttonText="A train thought..." 
+                    secretText="Every time you travelled those long hours, tired and sleepy, I just wanted to teleport there and carry your bags so you could rest. You worked so hard for this. 🥺" 
+                  />
+                </FadeInSection>
+
+                <FadeInSection>
+                  <div className="space-y-8 md:space-y-10 py-8">
+                    <div className="text-center space-y-3">
+                      <h2 className="font-playfair text-3xl md:text-5xl font-bold text-rose-900">
+                        The Anatomy of Your Big Day 🩺
+                      </h2>
+                      <p className="text-base md:text-lg text-rose-600 font-light">What to expect when you step into that hall tomorrow.</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                      {itinerary.map((item, i) => (
+                        <div key={i} className="flex items-start gap-4 p-4 md:p-5 bg-white/70 backdrop-blur-sm rounded-2xl shadow-sm border border-pink-100 hover:scale-105 hover:bg-white transition-all duration-300">
+                          <div className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-pink-100 rounded-full text-rose-500 shrink-0">
+                            <i className={`fa-solid ${item.icon} text-lg md:text-xl`}></i>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-rose-900 text-sm md:text-base">{item.title}</h4>
+                            <p className="text-xs md:text-sm text-rose-700 mt-1 font-light">{item.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </FadeInSection>
+
+                <FadeInSection>
+                  <div className="relative p-3 md:p-4 bg-white shadow-2xl rounded-sm transform rotate-1 hover:rotate-0 transition-transform duration-500 max-w-xs md:max-w-md mx-auto border-4 md:border-8 border-white">
+                    <img src={photos.photo3} onError={(e) => { e.target.onerror = null; e.target.src = fallbackPhotos.photo3; }} alt="Family" className="w-full h-auto rounded-sm object-cover aspect-[4/5]" />
+                    <div className="absolute top-2 right-2 text-2xl animate-pulse">🧿</div>
+                    <p className="font-dancing text-center text-xl md:text-2xl text-gray-600 mt-3 md:mt-4">Their proudest day 🥺</p>
+                  </div>
+                </FadeInSection>
+
+                <FadeInSection>
+                  <div className="bg-gradient-to-br from-rose-100 to-pink-50 p-6 md:p-12 rounded-[2rem] shadow-lg border border-pink-200 relative overflow-hidden">
+                    <i className="fa-solid fa-heart absolute -right-10 -top-10 text-pink-200 opacity-30 text-[200px]"></i>
+                    
+                    <h2 className="font-dancing text-3xl md:text-5xl text-rose-600 text-center mb-6 md:mb-8 relative z-10">
+                      Let's talk about YOU in that Saree...
+                    </h2>
+                    <div className="text-base md:text-xl text-rose-800 leading-relaxed font-light space-y-5 md:space-y-6 text-center relative z-10">
+                      <p>KAVU. WHAT WAS THAT. Like genuinely what was that 😭<br/>You looked unreal.</p>
+                      
+                      <div className="p-4 md:p-6 bg-white/50 rounded-2xl italic border-l-4 border-rose-400">
+                        <p>"That day you shared the trial photo... I literally fell from Burj Khalifa, directly from the top of Marina Bay in Singapore just seeing that. 😭 It was the cherry on top. Pink saree, that beautiful look, and your cute loving smile... it indeed felt like a not-real dream. Ahh, I just want to sit beside you and watch you."</p>
+                      </div>
+
+                      <p className="font-medium text-rose-900 text-lg md:text-2xl pt-2">
+                        Pink saree. Pink phone. Black coat. Graduation cap. That smile.<br/>
+                        Finished. Absolutely finished. 😭💜
+                      </p>
+                      <p>You are literally going to look like a dream walking around.<br/>
+                      Like one of those girls people remember for years after the convocation ends.</p>
+                    </div>
+                  </div>
+                </FadeInSection>
+
+                <FadeInSection>
+                  <div className="relative p-2 md:p-4 bg-white shadow-2xl rounded-full transform hover:scale-105 transition-transform duration-500 max-w-[250px] md:max-w-sm mx-auto border-4 md:border-8 border-pink-100 overflow-hidden">
+                    <img src={photos.photo4} onError={(e) => { e.target.onerror = null; e.target.src = fallbackPhotos.photo4; }} alt="That beautiful smile" className="w-full h-auto object-cover aspect-square rounded-full" />
+                    <div className="absolute inset-0 border-4 md:border-8 border-white rounded-full"></div>
+                  </div>
+                  <p className="font-dancing text-center text-2xl md:text-4xl text-rose-500 mt-4 md:mt-6">Happy Kavu is my favorite Kavu 🌸</p>
+                  <SecretNote 
+                    buttonText="A random confession..." 
+                    secretText="Whenever you talk in your baby voice or get super excited about small things, my heart literally melts. Please never ever change that about yourself. 🧸💜" 
+                  />
+                </FadeInSection>
+
+                <FadeInSection>
+                  <div className="space-y-6 md:space-y-8 text-center text-rose-800 text-base md:text-xl font-light px-2">
+                    <p>Tomorrow belongs to YOU. Live every second fully.</p>
+                    <p>Meet all your friends. Laugh until your stomach hurts. Dance. Take candid photos. Visit classrooms. Sit in lecture halls one last time.</p>
+                    <p className="font-medium">And you know what else I imagined?</p>
+                    
+                    <div className="bg-white/80 p-6 md:p-10 rounded-[2rem] shadow-inner border border-pink-100 my-6 md:my-8 relative">
+                      <i className="fa-solid fa-wand-magic-sparkles absolute top-4 left-4 text-pink-300 text-2xl"></i>
+                      <i className="fa-solid fa-wand-magic-sparkles absolute bottom-4 right-4 text-pink-300 text-2xl"></i>
+                      
+                      <p className="font-playfair text-xl md:text-2xl italic text-rose-600 mb-4 md:mb-6">
+                        "You walking slowly towards the podium after hearing: Dr. Kavya Shah..."
+                      </p>
+                      <p className="leading-relaxed">And suddenly your whole life flashes in front of your eyes.<br/>
+                      The stress. The tears. The exams. The family sacrifices.<br/>
+                      And there you are... Standing in a pink saree with a black coat over it looking unreal while the auditorium claps for you. 🥹💜</p>
+                    </div>
+                    
+                    <div className="inline-block p-4 border-2 border-dashed border-rose-300 rounded-xl bg-rose-50/50">
+                      <p className="font-medium text-rose-900 text-lg md:text-2xl">
+                        And somewhere there— I am clapping the loudest.<br/>
+                        With tears in my eyes. Looking at my girl becoming a doctor.
+                      </p>
+                    </div>
+                  </div>
+                </FadeInSection>
+
+                <FadeInSection>
+                  <div className="py-10 md:py-16 px-4 md:px-6 border-y-2 border-rose-200 text-center space-y-6 relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/30 to-transparent"></div>
+                    <i className="fa-solid fa-music mx-auto text-rose-400 mb-2 md:mb-4 relative z-10 text-3xl"></i>
+                    <p className="font-playfair italic text-xl md:text-3xl text-rose-700 leading-loose relative z-10">
+                      "Forever young, I want to be forever young...<br/>
+                      Do you really want to live forever?<br/>
+                      Forever, and ever..."
+                    </p>
+                    <p className="text-base md:text-lg text-rose-800 mt-4 md:mt-6 font-light relative z-10">
+                      I wish I could freeze this version of you forever.<br/>
+                      This loving, emotional, hardworking, innocent Kavu who still gets excited like a child over beautiful moments.
+                    </p>
+                  </div>
+                </FadeInSection>
+
+                <FadeInSection>
+                  <div className="relative p-3 md:p-4 bg-white shadow-2xl rounded-sm transform rotate-2 hover:rotate-0 transition-transform duration-500 max-w-xs md:max-w-md mx-auto border-4 md:border-8 border-white">
+                    <img src={photos.photo5} onError={(e) => { e.target.onerror = null; e.target.src = fallbackPhotos.photo5; }} alt="Us" className="w-full h-auto rounded-sm object-cover aspect-[4/5]" />
+                    <div className="absolute -bottom-5 -left-5 text-4xl animate-bounce" style={{ animationDuration: '2s' }}>🧸</div>
+                    <p className="font-dancing text-center text-2xl md:text-3xl text-rose-600 mt-3 md:mt-4">My Jigar ka Tukda ❤️</p>
+                  </div>
+                </FadeInSection>
+
+                <FadeInSection>
+                  <div className="text-center space-y-6 md:space-y-8 pb-16 md:pb-20">
+                    <h2 className="font-playfair text-3xl md:text-5xl text-rose-900 font-bold">
+                      I am so proud of you.
+                    </h2>
+                    <p className="text-lg md:text-xl text-rose-800 font-light leading-relaxed px-4">
+                      More than you will probably ever realise.<br/>
+                      And this is only the beginning. So many beautiful things are waiting for you ahead.
+                    </p>
+                    
+                    <div className="bg-rose-100/60 p-6 md:p-10 rounded-3xl mx-auto max-w-2xl mt-8 md:mt-12 backdrop-blur-sm shadow-inner">
+                      <p className="font-dancing text-2xl md:text-4xl text-rose-700 leading-relaxed md:leading-loose">
+                        "Tujhe banane ke baad jo mitti bachi thi na…<br/>
+                        Bhagwan ne ussi se mera dil bana diya hoga." 🥹
+                      </p>
+                    </div>
+                    
+                    <div className="pt-8 md:pt-12 space-y-3 md:space-y-4">
+                      <p className="text-xl md:text-3xl font-medium text-rose-900">I love you so much yaar.</p>
+                      <p className="text-base md:text-xl text-rose-600 font-light px-2">My bunny. My bestie. My soft place. My jigar ka tukda. My proudest feeling.</p>
+                      
+                      <div className="pt-6 md:pt-10 flex flex-col items-center justify-center gap-4">
+                      <div className="flex gap-4">
+                        <i className="fa-solid fa-champagne-glasses text-rose-500 text-2xl md:text-3xl"></i>
+                        <i className="fa-solid fa-wand-magic-sparkles text-pink-400 text-2xl md:text-3xl"></i>
+                        <i className="fa-solid fa-gift text-rose-500 text-2xl md:text-3xl"></i>
+                      </div>
+                      <p className="font-playfair text-2xl md:text-4xl text-rose-800 font-bold px-4 text-center leading-tight mt-2">
+                        Now go… And become the most beautiful memory of tomorrow. 🎓💜
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </FadeInSection>
+
+              <FadeInSection>
+                <div className="text-center pb-20 relative z-20">
+                  {!showSecret ? (
+                    <button 
+                      onClick={() => setShowSecret(true)}
+                      className="animate-bounce group inline-flex items-center justify-center px-6 py-3 font-bold text-rose-600 transition-all duration-300 bg-white/80 rounded-full hover:bg-rose-100 shadow-md border border-rose-200"
+                    >
+                      <i className="fa-solid fa-heart mr-2 group-hover:text-rose-500 group-hover:scale-125 transition-transform text-xl"></i>
+                      Open one last secret...
+                    </button>
+                  ) : (
+                    <div className="max-w-md mx-auto bg-gradient-to-br from-rose-500 to-pink-500 p-8 rounded-3xl shadow-2xl transform scale-100 transition-all duration-700 text-white relative overflow-hidden mx-4">
+                      <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30"></div>
+                      <p className="font-dancing text-3xl mb-4 relative z-10">P.S.</p>
+                      <p className="font-['Poppins'] font-light text-lg md:text-xl relative z-10 leading-relaxed">
+                        No matter where life takes us after this, I will always be your biggest cheerleader. I'll always be standing in the front row, clapping the loudest for you. 
+                        <br/><br/>
+                        <span className="font-semibold">— Yours, Bunny 🐰💜</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </FadeInSection>
+
+            </div>
+          </div>
+        )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
